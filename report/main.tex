@@ -1,0 +1,289 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{hyperref}
+
+\title{Customer Churn Prediction Report}
+\author{AI Final Project}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Problem Overview}
+This report summarizes the experiment in \texttt{notebooks/experiment.ipynb}, where the goal is to predict customer churn (\texttt{Churn} = 0/1). Four classification models were trained and compared, then the best model was selected using F1 score.
+
+\section{Data Description and Cleaning}
+The dataset was loaded from:
+\begin{center}
+\texttt{../data/customer\_churn\_dataset-training-master.csv}
+\end{center}
+
+\subsection*{Data sample}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../figures/data_sample.png}
+\caption{Sample rows from the customer churn dataset}
+\end{figure}
+
+Initial columns (12):
+\texttt{CustomerID, Age, Gender, Tenure, Usage Frequency, Support Calls, Payment Delay, Subscription Type, Contract Length, Total Spend, Last Interaction, Churn}.
+
+\subsection*{Column descriptions}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3.2cm} p{11.2cm}}
+\toprule
+\textbf{Column} & \textbf{Description} \\
+\midrule
+\texttt{CustomerID} & Unique identifier for each customer record. Used only for identification and dropped before training. \\
+\texttt{Age} & Customer age in years. Used for exploration and transformed into \texttt{AgeGroup} for modeling. \\
+\texttt{Gender} & Customer gender category (e.g., Male/Female). Categorical input feature. \\
+\texttt{Tenure} & Duration of customer relationship with the service. Higher/lower values may indicate loyalty differences. \\
+\texttt{Usage Frequency} & How frequently the customer uses the service/product. Behavioral engagement signal. \\
+\texttt{Support Calls} & Number of customer support interactions. Higher values can indicate dissatisfaction or service issues. \\
+\texttt{Payment Delay} & Delay in customer payments. Higher delay can indicate financial or engagement risk. \\
+\texttt{Subscription Type} & Plan type selected by the customer (e.g., Basic, Standard, Premium). \\
+\texttt{Contract Length} & Billing/contract cycle category (e.g., Monthly, Quarterly, Annual). \\
+\texttt{Total Spend} & Cumulative spending amount by customer. Proxy for customer value and engagement. \\
+\texttt{Last Interaction} & Recency/amount of latest interaction activity as provided in dataset. \\
+\texttt{Churn} & Target label: 1 = churned customer, 0 = retained customer. \\
+\bottomrule
+\end{tabular}
+\caption{Definitions of all columns in the dataset}
+\end{table}
+
+Data quality checks found one row with missing values across all columns. After dropping missing rows:
+\[
+\texttt{df.shape} = (440832,\ 12)
+\]
+
+Then \texttt{CustomerID} was removed because it is an identifier and not a predictive behavioral feature.
+
+\section{Exploratory Data Analysis}
+\subsection*{Category distributions}
+Key distributions from notebook outputs:
+\begin{itemize}
+    \item \textbf{AgeGroup}: Senior 156,893; Adult 117,210; Youth 102,693; Child 64,036
+    \item \textbf{Gender}: Male 250,252; Female 190,580
+    \item \textbf{Subscription Type}: Standard 149,128; Premium 148,678; Basic 143,026
+    \item \textbf{Contract Length}: Annual 177,198; Quarterly 176,530; Monthly 87,104
+\end{itemize}
+
+\subsection*{Churn-wise averages}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Feature} & \textbf{Not Churn (0)} & \textbf{Churn (1)} \\
+\midrule
+Tenure & 32.2818 & 30.4736 \\
+Usage Frequency & 16.2606 & 15.4617 \\
+Age & 36.2630 & 41.7473 \\
+Payment Delay & 10.0155 & 15.2177 \\
+Total Spend & 749.9531 & 541.2855 \\
+Support Calls & 1.5864 & 5.1449 \\
+\bottomrule
+\end{tabular}
+\caption{Average feature values by churn class}
+\end{table}
+
+Main pattern: churned customers are older on average, have higher payment delay, much more support calls, lower total spend, and slightly lower tenure/usage.
+
+\subsection*{EDA figures}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{../figures/churn_by_subscription_type.png}
+\caption{Churn counts by subscription type}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{../figures/churn_by_contract_length.png}
+\caption{Churn counts by contract length}
+\end{figure}
+
+\section{Feature Engineering and Preprocessing}
+\textbf{Implemented feature engineering:}
+\begin{itemize}
+    \item Created \texttt{AgeGroup} from \texttt{Age} using bins \([15,25), [25,35), [35,45), [45,66)\) with labels \texttt{Child, Youth, Adult, Senior}.
+    \item Dropped raw \texttt{Age} from model input after deriving \texttt{AgeGroup}.
+\end{itemize}
+
+Model input/target:
+\begin{itemize}
+    \item \(X = df.drop(['Churn','Age'])\)
+    \item \(y = df['Churn'].astype(int)\)
+\end{itemize}
+
+Preprocessing pipeline:
+\begin{itemize}
+    \item \texttt{StandardScaler} for numerical features
+    \item \texttt{OneHotEncoder(handle\_unknown='ignore')} for categorical features:
+    \texttt{Gender, Subscription Type, Contract Length, AgeGroup}
+\end{itemize}
+
+Train/test split:
+\begin{itemize}
+    \item 80/20 split with \texttt{random\_state=42}, \texttt{stratify=y}
+    \item Test support from reports: 88,167 rows (38,167 non-churn, 50,000 churn)
+\end{itemize}
+
+\section{Model Building}
+The notebook trained and evaluated four models:
+\begin{enumerate}
+    \item Logistic Regression (\texttt{max\_iter=1000})
+    \item Decision Tree (\texttt{random\_state=42})
+    \item Random Forest (\texttt{n\_estimators=100, random\_state=42})
+    \item Gradient Boosting (\texttt{n\_estimators=100, random\_state=42})
+\end{enumerate}
+
+Metrics used for comparison: \textbf{Accuracy} and \textbf{F1 score} (primary selection criterion: F1).
+
+\section{Results and Model Comparison}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{F1 Score} \\
+\midrule
+Random Forest & 0.979221 & 0.981407 \\
+Gradient Boosting & 0.977509 & 0.979871 \\
+Decision Tree & 0.964080 & 0.968420 \\
+Logistic Regression & 0.897660 & 0.907845 \\
+\bottomrule
+\end{tabular}
+\caption{Performance comparison from notebook output}
+\end{table}
+
+Class-wise reports show that Random Forest and Gradient Boosting both perform strongly on both classes, but Random Forest gives the best overall F1.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../figures/confusion_matrices.png}
+\caption{Confusion matrices for all four models}
+\end{figure}
+
+\section{Best Model Selection}
+The notebook selected \textbf{Random Forest} as best model by highest F1 score:
+\begin{itemize}
+    \item Accuracy: 0.9792
+    \item F1 Score: 0.9814
+\end{itemize}
+
+This choice is justified because churn prediction generally prioritizes balanced precision/recall behavior for the positive class, and F1 captures that balance better than accuracy alone.
+
+\section{Model Interpretation}
+Permutation importance was computed for the selected model.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{../figures/feature_importance.png}
+\caption{Permutation feature importance for Random Forest}
+\end{figure}
+
+Top drivers were:
+\begin{enumerate}
+    \item Support Calls (0.1518)
+    \item Total Spend (0.1102)
+    \item Contract Length (0.0804)
+    \item Payment Delay (0.0789)
+\end{enumerate}
+Low-importance feature: Subscription Type (0.0023).
+
+\section{Artifacts and Final Output}
+The notebook saved trained artifacts in \texttt{../models/}, including:
+\texttt{best\_model.joblib} (Random Forest), all individual models, preprocessing pipeline, and column metadata.
+
+A custom inference example in the notebook used the best model and returned:
+\begin{itemize}
+    \item Predicted Churn: 0 (Not Churn)
+    \item Churn Probability: 0.00\%
+    \item Retention Probability: 100.00\%
+\end{itemize}
+
+\section{Recommendation System (\texttt{recommend.ipynb})}
+After model training, the project adds a \textbf{churn-prevention recommendation engine}. Instead of recommending products, this module recommends \textbf{minimal actionable customer-level interventions} that can flip a predicted outcome from \texttt{Churn} to \texttt{Not Churn}.
+
+\subsection*{Purpose}
+For each customer profile:
+\begin{enumerate}
+    \item Predict churn class and churn probability using the saved best model (Random Forest).
+    \item If customer is low risk (\texttt{Not Churn}), return no action.
+    \item If customer is high risk (\texttt{Churn}), search for the smallest feasible feature changes that reverse the prediction.
+\end{enumerate}
+
+\subsection*{Loaded artifacts and inputs}
+The notebook loads:
+\begin{itemize}
+    \item \texttt{../models/best\_model.joblib}
+    \item \texttt{../models/preprocessing\_pipeline.joblib}
+    \item \texttt{../models/column\_info.joblib}
+\end{itemize}
+
+Model input columns used by this module:
+\texttt{Gender, Tenure, Usage Frequency, Support Calls, Payment Delay, Subscription Type, Contract Length, Total Spend, Last Interaction, AgeGroup}.
+
+\subsection*{Actionable retention levers}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3.8cm} p{2.2cm} p{2.8cm} p{6.0cm}}
+\toprule
+\textbf{Feature} & \textbf{Direction} & \textbf{Step} & \textbf{Business interpretation} \\
+\midrule
+\texttt{Total Spend} & Increase & +50 & Offer discount/promo or bundled value to raise spend commitment \\
+\texttt{Payment Delay} & Decrease & -1 day & Payment reminders, auto-pay enrollment, billing assistance \\
+\texttt{Support Calls} & Decrease & -1 call & Proactive issue resolution to reduce escalations \\
+\texttt{Usage Frequency} & Increase & +1 session/month & Campaigns/tutorials to increase platform engagement \\
+\texttt{Last Interaction} & Decrease & -1 day & Earlier proactive outreach (contact sooner) \\
+\texttt{Contract Length} & Change category & Monthly/Quarterly/Annual & Move to a more stable contract option when beneficial \\
+\bottomrule
+\end{tabular}
+\caption{Actionable features and intervention logic in \texttt{recommend.ipynb}}
+\end{table}
+
+\subsection*{Algorithm design}
+The recommendation logic is a \textbf{counterfactual search with greedy minimal changes}:
+\begin{enumerate}
+    \item Compute baseline prediction and churn probability.
+    \item Try each actionable feature independently.
+    \item For numeric features, use binary search to find the smallest change that flips prediction.
+    \item For contract type, test alternative categories (upgrade path first, then downgrade).
+    \item If one feature can flip prediction, pick the lowest-effort single change.
+    \item If not, test combinations of 2, 3, ... features and minimize each changed feature while keeping the flipped outcome.
+    \item If no feasible intervention flips prediction, return high-risk escalation.
+\end{enumerate}
+
+\subsection*{Returned recommendation states}
+The engine returns one of four statuses:
+\begin{itemize}
+    \item \texttt{NO\_ACTION}: customer already predicted as non-churn.
+    \item \texttt{SINGLE\_CHANGE}: one minimal intervention is enough.
+    \item \texttt{MULTI\_CHANGE}: multiple coordinated interventions are needed.
+    \item \texttt{HIGH\_RISK}: model cannot be flipped with allowed actions; escalate to retention team.
+\end{itemize}
+
+\subsection*{Worked example from notebook output}
+Input customer profile in the notebook:
+\begin{center}
+\texttt{Female, Tenure=27, Usage Frequency=6, Support Calls=4, Payment Delay=11,}\\
+\texttt{Subscription Type=Premium, Contract Length=Quarterly, Total Spend=933,}\\
+\texttt{Last Interaction=24, AgeGroup=Adult}
+\end{center}
+
+Observed output:
+\begin{itemize}
+    \item Initial prediction: \textbf{Churn} with probability \textbf{98.00\%}
+    \item Recommended status: \texttt{SINGLE\_CHANGE}
+    \item Minimal intervention: \texttt{Last Interaction} from \texttt{24} to \texttt{15} days
+    \item New churn probability after intervention: \textbf{4.00\%}
+\end{itemize}
+
+This demonstrates the practical objective of the module: convert model predictions into concrete retention actions with minimal operational effort.
+
+\section{Conclusion}
+The pipeline is complete from cleaning and EDA through feature engineering, model comparison, and interpretation. Random Forest achieved the best F1 score and is the final selected model for churn prediction in this project.
+
+\end{document}
