@@ -18,6 +18,7 @@ class ModelArtifacts:
     model: Any
     pipeline: Any
     feature_columns: list[str]
+    numerical_features: list[str]
     best_model_name: str
 
 
@@ -59,6 +60,7 @@ def get_model_artifacts() -> ModelArtifacts:
         model=best_model,
         pipeline=pipeline,
         feature_columns=column_info["feature_columns"],
+        numerical_features=column_info["numerical_features"],
         best_model_name=column_info["best_model_name"],
     )
 
@@ -75,7 +77,7 @@ def get_metadata() -> dict[str, Any]:
 
 def predict_customer(customer: CustomerFeatures) -> dict[str, Any]:
     artifacts = get_model_artifacts()
-    row = _customer_to_dataframe(customer, artifacts.feature_columns)
+    row = _customer_to_dataframe(customer, artifacts)
     prediction, churn_probability = _predict(row, artifacts)
     recommendation = _recommend(row, artifacts)
 
@@ -89,13 +91,15 @@ def predict_customer(customer: CustomerFeatures) -> dict[str, Any]:
 
 def recommend_customer(customer: CustomerFeatures) -> dict[str, Any]:
     artifacts = get_model_artifacts()
-    row = _customer_to_dataframe(customer, artifacts.feature_columns)
+    row = _customer_to_dataframe(customer, artifacts)
     return _recommend(row, artifacts)
 
 
-def _customer_to_dataframe(customer: CustomerFeatures, feature_columns: list[str]) -> pd.DataFrame:
-    row = pd.DataFrame([customer.to_model_row()])
-    return row[feature_columns]
+def _customer_to_dataframe(customer: CustomerFeatures, artifacts: ModelArtifacts) -> pd.DataFrame:
+    row = pd.DataFrame([customer.to_model_row()])[artifacts.feature_columns].copy()
+    for feature in artifacts.numerical_features:
+        row[feature] = pd.to_numeric(row[feature], errors="coerce").astype(float)
+    return row
 
 
 def _predict(row_df: pd.DataFrame, artifacts: ModelArtifacts) -> tuple[int, float]:
