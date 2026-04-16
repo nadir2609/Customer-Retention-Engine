@@ -6,14 +6,21 @@
 \usepackage{hyperref}
 
 \title{Customer Churn Prediction Report}
-\author{AI Final Project}
+\author{
+Nadir Askarov \and
+Valiyyaddin Aliyev \and
+Cavidan Muradzada \and
+Matin Khalilov
+}
 \date{\today}
 
 \begin{document}
 \maketitle
+\tableofcontents
+\newpage
 
 \section{Problem Overview}
-This report summarizes the experiment in \texttt{notebooks/experiment.ipynb}, where the goal is to predict customer churn (\texttt{Churn} = 0/1). Four classification models were trained and compared, then the best model was selected using F1 score.
+This report summarizes the experiment in \texttt{notebooks/experiment.ipynb}, where the goal is to predict customer churn (\texttt{Churn} = 0/1). The business problem solved by this project is retention management for subscription-based services: identifying customers likely to churn early and recommending interventions to reduce churn, protect recurring revenue, and prioritize retention operations. Four classification models were trained and compared, then the best model was selected using F1 score.
 
 \section{Data Description and Cleaning}
 The dataset was loaded from:
@@ -38,7 +45,7 @@ Initial columns (12):
 \toprule
 \textbf{Column} & \textbf{Description} \\
 \midrule
-\texttt{CustomerID} & Unique identifier for each customer record. Used only for identification and dropped before training. \\
+\texttt{CustomerID} & Unique identifier for each customer record. Used only for identification. \\
 \texttt{Age} & Customer age in years. Used for exploration and transformed into \texttt{AgeGroup} for modeling. \\
 \texttt{Gender} & Customer gender category (e.g., Male/Female). Categorical input feature. \\
 \texttt{Tenure} & Duration of customer relationship with the service. Higher/lower values may indicate loyalty differences. \\
@@ -47,8 +54,8 @@ Initial columns (12):
 \texttt{Payment Delay} & Delay in customer payments. Higher delay can indicate financial or engagement risk. \\
 \texttt{Subscription Type} & Plan type selected by the customer (e.g., Basic, Standard, Premium). \\
 \texttt{Contract Length} & Billing/contract cycle category (e.g., Monthly, Quarterly, Annual). \\
-\texttt{Total Spend} & Cumulative spending amount by customer. Proxy for customer value and engagement. \\
-\texttt{Last Interaction} & Recency/amount of latest interaction activity as provided in dataset. \\
+\texttt{Total Spend} & Total spending amount by customer. \\
+\texttt{Last Interaction} & Latest interaction activity . \\
 \texttt{Churn} & Target label: 1 = churned customer, 0 = retained customer. \\
 \bottomrule
 \end{tabular}
@@ -193,7 +200,6 @@ Top drivers were:
 \end{enumerate}
 Low-importance feature: Subscription Type (0.0023).
 
-\section{Artifacts and Final Output}
 The notebook saved trained artifacts in \texttt{../models/}, including:
 \texttt{best\_model.joblib} (Random Forest), all individual models, preprocessing pipeline, and column metadata.
 
@@ -204,7 +210,7 @@ A custom inference example in the notebook used the best model and returned:
     \item Retention Probability: 100.00\%
 \end{itemize}
 
-\section{Recommendation System (\texttt{recommend.ipynb})}
+\section{Recommendation System}
 After model training, the project adds a \textbf{churn-prevention recommendation engine}. Instead of recommending products, this module recommends \textbf{minimal actionable customer-level interventions} that can flip a predicted outcome from \texttt{Churn} to \texttt{Not Churn}.
 
 \subsection*{Purpose}
@@ -236,8 +242,6 @@ Model input columns used by this module:
 \texttt{Total Spend} & Increase & +50 & Offer discount/promo or bundled value to raise spend commitment \\
 \texttt{Payment Delay} & Decrease & -1 day & Payment reminders, auto-pay enrollment, billing assistance \\
 \texttt{Support Calls} & Decrease & -1 call & Proactive issue resolution to reduce escalations \\
-\texttt{Usage Frequency} & Increase & +1 session/month & Campaigns/tutorials to increase platform engagement \\
-\texttt{Last Interaction} & Decrease & -1 day & Earlier proactive outreach (contact sooner) \\
 \texttt{Contract Length} & Change category & Monthly/Quarterly/Annual & Move to a more stable contract option when beneficial \\
 \bottomrule
 \end{tabular}
@@ -268,17 +272,22 @@ The engine returns one of four statuses:
 \subsection*{Worked example from notebook output}
 Input customer profile in the notebook:
 \begin{center}
-\texttt{Female, Tenure=27, Usage Frequency=6, Support Calls=4, Payment Delay=11,}\\
-\texttt{Subscription Type=Premium, Contract Length=Quarterly, Total Spend=933,}\\
-\texttt{Last Interaction=24, AgeGroup=Adult}
+\texttt{Female, Tenure=27, Usage Frequency=6, Support Calls=15, Payment Delay=29,}\\
+\texttt{Subscription Type=Premium, Contract Length=Quarterly, Total Spend=233,}\\
+\texttt{Last Interaction=14, AgeGroup=Adult}
 \end{center}
 
 Observed output:
 \begin{itemize}
-    \item Initial prediction: \textbf{Churn} with probability \textbf{98.00\%}
-    \item Recommended status: \texttt{SINGLE\_CHANGE}
-    \item Minimal intervention: \texttt{Last Interaction} from \texttt{24} to \texttt{15} days
-    \item New churn probability after intervention: \textbf{4.00\%}
+    \item Initial prediction: \textbf{Churn} with probability \textbf{100.00\%}
+    \item Recommended status: \texttt{MULTI\_CHANGE}
+    \item Coordinated interventions:
+    \begin{itemize}
+        \item \texttt{Total Spend}: \texttt{233} \(\rightarrow\) \texttt{533}
+        \item \texttt{Payment Delay}: \texttt{29} \(\rightarrow\) \texttt{20}
+        \item \texttt{Support Calls}: \texttt{15} \(\rightarrow\) \texttt{4}
+    \end{itemize}
+    \item New churn probability after intervention: \textbf{16.00\%}
 \end{itemize}
 
 This demonstrates the practical objective of the module: convert model predictions into concrete retention actions with minimal operational effort.
