@@ -1,3 +1,4 @@
+
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
@@ -5,11 +6,11 @@
 \usepackage{float}
 \usepackage{hyperref}
 
-\title{Customer Churn Prediction Report}
+\title{Customer Retention Engine}
 \author{
 Nadir Askarov \and
 Valiyyaddin Aliyev \and
-Cavidan Muradzada \and
+Javidan Muradzada \and
 Matin Khalilov
 }
 \date{\today}
@@ -20,7 +21,7 @@ Matin Khalilov
 \newpage
 
 \section{Problem Overview}
-This report summarizes the experiment in \texttt{notebooks/experiment.ipynb}, where the goal is to predict customer churn (\texttt{Churn} = 0/1). The business problem solved by this project is retention management for subscription-based services: identifying customers likely to churn early and recommending interventions to reduce churn, protect recurring revenue, and prioritize retention operations. Four classification models were trained and compared, then the best model was selected using F1 score.
+This report summarizes the experiment in \texttt{notebooks/experiment.ipynb}, where the goal is to predict customer churn (\texttt{Churn} = 0/1). The business problem solved by this project is retention management system. Identifying customers likely to churn early and recommending interventions to reduce churn, protect recurring revenue, and prioritize retention operations \texttt{notebooks/recommend.ipynb}. Different classification models were trained and compared, then the best model was selected using F1 score.
 
 \section{Data Description and Cleaning}
 The dataset was loaded from:
@@ -198,7 +199,6 @@ Top drivers were:
     \item Contract Length (0.0804)
     \item Payment Delay (0.0789)
 \end{enumerate}
-Low-importance feature: Subscription Type (0.0023).
 
 The notebook saved trained artifacts in \texttt{../models/}, including:
 \texttt{best\_model.joblib} (Random Forest), all individual models, preprocessing pipeline, and column metadata.
@@ -283,9 +283,14 @@ Observed output:
     \item Recommended status: \texttt{MULTI\_CHANGE}
     \item Coordinated interventions:
     \begin{itemize}
-        \item \texttt{Total Spend}: \texttt{233} \(\rightarrow\) \texttt{533}
-        \item \texttt{Payment Delay}: \texttt{29} \(\rightarrow\) \texttt{20}
-        \item \texttt{Support Calls}: \texttt{15} \(\rightarrow\) \texttt{4}
+        \item \textbf{Total Spend}: \texttt{233} $\rightarrow$ \texttt{533} \\
+        \textit{Business action: Offer discount/promo or bundled value to increase customer commitment and perceived value.}
+
+        \item \textbf{Payment Delay}: \texttt{29} $\rightarrow$ \texttt{20} \\
+        \textit{Business action: Apply payment reminders, enable auto-pay, or provide billing assistance to reduce delays.}
+
+        \item \textbf{Support Calls}: \texttt{15} $\rightarrow$ \texttt{4} \\
+        \textit{Business action: Proactively resolve issues and improve service quality to reduce repeated support interactions.}
     \end{itemize}
     \item New churn probability after intervention: \textbf{16.00\%}
 \end{itemize}
@@ -293,6 +298,6 @@ Observed output:
 This demonstrates the practical objective of the module: convert model predictions into concrete retention actions with minimal operational effort.
 
 \section{Conclusion}
-The pipeline is complete from cleaning and EDA through feature engineering, model comparison, and interpretation. Random Forest achieved the best F1 score and is the final selected model for churn prediction in this project.
+The pipeline is complete from cleaning and EDA through feature engineering, model comparison, and interpretation. Random Forest achieved the best F1 score and is the final selected model for churn prediction in this project. And recommendation system is used to prevent customer from leaving company
 
 \end{document}
