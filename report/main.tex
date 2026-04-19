@@ -140,6 +140,8 @@ Train/test split:
 \end{itemize}
 
 \section{Model Building}
+To ensure a fair comparison, all models were trained on the same stratified 80/20 split and evaluated on the same test set after identical preprocessing (numerical scaling + categorical one-hot encoding). This design isolates model behavior as the main source of performance differences.
+
 The notebook trained and evaluated four models:
 \begin{enumerate}
     \item Logistic Regression (\texttt{max\_iter=1000})
@@ -148,7 +150,22 @@ The notebook trained and evaluated four models:
     \item Gradient Boosting (\texttt{n\_estimators=100, random\_state=42})
 \end{enumerate}
 
-Metrics used for comparison: \textbf{Accuracy} and \textbf{F1 score} (primary selection criterion: F1).
+Each model contributes a different learning bias:
+\begin{itemize}
+    \item \textbf{Logistic Regression}: linear baseline; useful to check whether churn can be separated with a simple linear boundary.
+    \item \textbf{Decision Tree}: captures non-linear thresholds and feature interactions, but can be unstable as a single-tree learner.
+    \item \textbf{Random Forest}: bagging ensemble of trees; reduces variance and usually improves generalization on tabular data.
+    \item \textbf{Gradient Boosting}: sequentially improves weak learners by focusing on residual errors; often strong on structured datasets.
+\end{itemize}
+
+Metrics used for comparison:
+\[
+\mathrm{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}, \quad
+F1 = \frac{2 \cdot P \cdot R}{P + R}
+\]
+where \(P\) is precision and \(R\) is recall.
+
+The primary selection criterion is \textbf{F1 score}, because churn prediction requires balancing missed churners (false negatives) and unnecessary interventions (false positives), not only maximizing overall accuracy.
 
 \section{Results and Model Comparison}
 \begin{table}[H]
@@ -166,7 +183,17 @@ Logistic Regression & 0.897660 & 0.907845 \\
 \caption{Performance comparison from notebook output}
 \end{table}
 
-Class-wise reports show that Random Forest and Gradient Boosting both perform strongly on both classes, but Random Forest gives the best overall F1.
+Ranking by F1 is: \textbf{Random Forest} \(>\) \textbf{Gradient Boosting} \(>\) \textbf{Decision Tree} \(>\) \textbf{Logistic Regression}.
+
+Detailed comparison:
+\begin{itemize}
+    \item \textbf{Random Forest} achieved the best overall performance (Accuracy 0.9792, F1 0.9814).
+    \item \textbf{Gradient Boosting} was very close (F1 0.9799), only about 0.0015 below Random Forest.
+    \item \textbf{Decision Tree} performed clearly lower than both ensembles (F1 0.9684), showing weaker generalization than ensemble methods.
+    \item \textbf{Logistic Regression} had the lowest scores (F1 0.9078), indicating that a linear decision boundary is insufficient for this churn pattern.
+\end{itemize}
+
+Class-wise reports and confusion matrices show that ensemble models (Random Forest, Gradient Boosting) reduce both false positives and false negatives compared to single-tree and linear baselines.
 
 \begin{figure}[H]
 \centering
@@ -175,13 +202,20 @@ Class-wise reports show that Random Forest and Gradient Boosting both perform st
 \end{figure}
 
 \section{Best Model Selection}
-The notebook selected \textbf{Random Forest} as best model by highest F1 score:
+The final model choice followed a metric-first policy:
+\begin{enumerate}
+    \item Maximize \textbf{F1 score} (primary business metric for churn intervention quality).
+    \item Use \textbf{Accuracy} as a secondary consistency check.
+    \item Confirm balanced class-wise behavior from the classification reports and confusion matrix.
+\end{enumerate}
+
+Based on this policy, the notebook selected \textbf{Random Forest}:
 \begin{itemize}
     \item Accuracy: 0.9792
     \item F1 Score: 0.9814
 \end{itemize}
 
-This choice is justified because churn prediction generally prioritizes balanced precision/recall behavior for the positive class, and F1 captures that balance better than accuracy alone.
+Although Gradient Boosting is highly competitive, Random Forest remains the top model on both reported metrics and therefore becomes the production candidate. The saved artifact (\texttt{best\_model.joblib}) is then used by the recommendation engine to generate customer-level retention actions.
 
 \section{Model Interpretation}
 Permutation importance was computed for the selected model.
@@ -299,5 +333,12 @@ This demonstrates the practical objective of the module: convert model predictio
 
 \section{Conclusion}
 The pipeline is complete from cleaning and EDA through feature engineering, model comparison, and interpretation. Random Forest achieved the best F1 score and is the final selected model for churn prediction in this project. And recommendation system is used to prevent customer from leaving company
+
+\section*{References}
+\begin{enumerate}
+    \item L. Breiman, ``Random Forests,'' \textit{Machine Learning}, 45(1), 5--32, 2001.
+    \item F. Pedregosa et al., ``Scikit-learn: Machine Learning in Python,'' \textit{Journal of Machine Learning Research}, 12, 2825--2830, 2011. \url{https://scikit-learn.org}
+    \item M. Shahid Azeem, ``Customer Churn Dataset,'' Kaggle. \url{https://www.kaggle.com/datasets/muhammadshahidazeem/customer-churn-dataset}
+\end{enumerate}
 
 \end{document}
