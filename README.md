@@ -69,7 +69,7 @@ Customer-Retention-Engine/
 
 1. Start the backend API (from project root):
    ```powershell
-   uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+   uvicorn backend.app.main:app --reload
    ```
 2. Start the Streamlit frontend in a second terminal:
    ```powershell
