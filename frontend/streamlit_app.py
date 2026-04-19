@@ -45,7 +45,6 @@ def _format_percent(value: float) -> str:
 
 st.set_page_config(page_title="Customer Retention Engine", layout="wide")
 st.title("Customer Retention Engine")
-st.caption("Streamlit frontend powered by FastAPI churn prediction + recommendation endpoints.")
 
 with st.sidebar:
     st.header("Backend")
